@@ -1,0 +1,42 @@
+#build-job:       # This job runs in the build stage, which runs first.
+#  stage: build
+#  script:
+#    - echo "Compiling the code..."
+
+
+run_test_job:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.40.0-jammy
+  script:
+    - echo TESTS for UI
+    - ls -la
+    - export HEADLESS=true
+    - apt-get update
+    - apt-get -y install openjdk-21-jdk maven
+    - wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure_2.27.0-1_all.deb
+    - dpkg -i allure_2.27.0-1_all.deb
+    - mvn test
+  after_script:
+    - cd target
+    - allure generate
+    - ls -la
+  artifacts:
+    untracked: false
+    when: always
+    access: all
+    expire_in: 3 days
+    paths:
+      - "target/allure-report"
+
+
+lint-test-job:   # This job also runs in the test stage.
+  stage: test    # It can run at the same time as unit-test-job (in parallel).
+  script:
+    - echo "Linting code... This will take about 10 seconds."
+
+
+deploy-job:      # This job runs in the deploy stage.
+  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+  environment: production
+  script:
+    - echo "Deploying application..."
